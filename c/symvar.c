@@ -132,7 +132,7 @@ struct symvar* sv_init_v(struct symconstrs* ccs, double nominal, char* vn) {
   return v;
 }
 
-struct symvar* sv_ss(struct symconstrs* ccs, symexp_op op, struct symvar* l, struct symvar* r) {
+struct symvar* sv_ss(struct symconstrs* ccs, struct symvar* l, symexp_op op, struct symvar* r) {
   struct symvar* res = malloc(sizeof(struct symvar));
   struct symexp* exp = malloc(sizeof(struct symexp));
   struct symconstrs* constrs = malloc(sizeof(struct symconstrs));
@@ -169,9 +169,9 @@ struct symvar* sv_ss(struct symconstrs* ccs, symexp_op op, struct symvar* l, str
   return res;
 }
 
-struct symvar* sv_sd(struct symconstrs* ccs, symexp_op op, struct symvar* l, double rd) {
+struct symvar* sv_sd(struct symconstrs* ccs, struct symvar* l, symexp_op op, double rd) {
   struct symvar* r = sv_init_d(NULL, rd);
-  return sv_ss(ccs, op, l, r);
+  return sv_ss(ccs, l, op, r);
 }
 
 void sv_print_exp(struct symexp* e) {
