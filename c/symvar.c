@@ -3,19 +3,16 @@
 #include <math.h>
 
 typedef enum { DOUBLE, INT, VAR, ADD, SUB, MUL, DIV, EXP } symexp_op;
-typedef enum { EQ, LTEQ, GTEQ, LT, GT } symconstr_op;
+typedef enum { EQ, NEQ, LTEQ, GT, LT, GTEQ } symconstr_op;
+//Recommended not to use EQ/NEQ as nominal values are floating-point
 
 struct symexp {
 	symexp_op op;
-	union {
-		double constd;
-		int consti;
-		struct {
-			struct symexp* left;
-			struct symexp* right;
-		};
-		char* var;
-	};
+  struct symexp* left;
+  struct symexp* right;
+  char* var;
+  double constd;
+  int consti;
 };
 
 struct symconstrs {
@@ -33,6 +30,58 @@ struct symvar {
 	struct symexp *exp;
 	struct symconstrs *constrs;
 };
+
+int sv_pconstr(struct symconstrs** ccs, struct symvar* l, symconstr_op op, struct symvar* r) {
+  int res;
+  double lv=l->nominal, rv=r->nominal;
+  switch(op) {
+    case EQ:
+      if(lv==rv)
+        res=1;
+      else
+        res=0;
+      break;
+    case LT:
+      if(lv<rv)
+        res=1;
+      else
+        res=0;
+      break;
+    case GT:
+      if(lv>rv)
+        res=1;
+      else
+        res=0;
+      break;
+    case NEQ:
+      if(lv==rv)
+        res=0;
+      else
+        res=0;
+      break;
+    case GTEQ:
+      if(lv<rv)
+        res=0;
+      else
+        res=1;
+      break;
+    case LTEQ:
+      if(lv>rv)
+        res=0;
+      else
+        res=1;
+      break;
+  }
+  struct symconstrs* ccs_old = *ccs;
+  *ccs = malloc(sizeof(struct symconstrs));
+  (*ccs)->right=ccs_old;
+  (*ccs)->left=NULL;
+  (*ccs)->exp = malloc(sizeof(struct symconstr));
+  (*ccs)->exp->left = l->exp;
+  (*ccs)->exp->right = r->exp;
+  (*ccs)->exp->op = op^(1-res);
+  return res;
+}
 
 struct symvar* sv_init_i(int nominal) {
   struct symvar* v = malloc(sizeof(struct symvar));
@@ -53,6 +102,18 @@ struct symvar* sv_init_d(double nominal) {
   v->constrs = NULL;
   exp->op = DOUBLE;
   exp->constd = nominal;
+  return v;
+}
+
+struct symvar* sv_init_v(double nominal, char* vn) {
+  struct symvar* v = malloc(sizeof(struct symvar));
+  struct symexp* exp = malloc(sizeof(struct symexp));
+  v->nominal = nominal;
+  v->exp = exp;
+  v->constrs = NULL;
+  exp->op = VAR;
+  exp->constd = nominal;
+  exp->var = vn;
   return v;
 }
 
@@ -178,6 +239,9 @@ void sv_print_constrs(struct symconstrs* c) {
     switch(c->exp->op) {
       case EQ:
         printf(" = ");
+        break;
+      case NEQ:
+        printf(" != ");
         break;
       case LTEQ:
         printf(" <= ");
