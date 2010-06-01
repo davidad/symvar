@@ -31,6 +31,15 @@ struct symvar {
 	struct symconstrs *constrs;
 };
 
+struct symconstrs* sv_copyccs(struct symconstrs* ccs) {
+  if(ccs == NULL) return NULL;
+  struct symconstrs* copy = malloc(sizeof(struct symconstrs));
+  copy->exp = ccs->exp;
+  copy->left = sv_copyccs(ccs->left);
+  copy->right = sv_copyccs(ccs->right);
+  return copy;
+}
+
 int sv_pconstr(struct symconstrs** ccs, struct symvar* l, symconstr_op op, struct symvar* r) {
   int res;
   double lv=l->nominal, rv=r->nominal;
@@ -83,49 +92,54 @@ int sv_pconstr(struct symconstrs** ccs, struct symvar* l, symconstr_op op, struc
   return res;
 }
 
-struct symvar* sv_init_i(int nominal) {
+struct symvar* sv_init_i(struct symconstrs* ccs, int nominal) {
   struct symvar* v = malloc(sizeof(struct symvar));
   struct symexp* exp = malloc(sizeof(struct symexp));
   v->nominal = (double)nominal;
   v->exp = exp;
-  v->constrs = NULL;
+  v->constrs = ccs;
   exp->op = INT;
   exp->consti = nominal;
   return v;
 }
 
-struct symvar* sv_init_d(double nominal) {
+struct symvar* sv_init_d(struct symconstrs* ccs, double nominal) {
   struct symvar* v = malloc(sizeof(struct symvar));
   struct symexp* exp = malloc(sizeof(struct symexp));
   v->nominal = nominal;
   v->exp = exp;
-  v->constrs = NULL;
+  v->constrs = ccs;
   exp->op = DOUBLE;
   exp->constd = nominal;
   return v;
 }
 
-struct symvar* sv_init_v(double nominal, char* vn) {
+struct symvar* sv_init_v(struct symconstrs* ccs, double nominal, char* vn) {
   struct symvar* v = malloc(sizeof(struct symvar));
   struct symexp* exp = malloc(sizeof(struct symexp));
   v->nominal = nominal;
   v->exp = exp;
-  v->constrs = NULL;
+  v->constrs = ccs;
   exp->op = VAR;
   exp->constd = nominal;
   exp->var = vn;
   return v;
 }
 
-struct symvar* sv_ss(symexp_op op, struct symvar* l, struct symvar* r) {
+struct symvar* sv_ss(struct symconstrs* ccs, symexp_op op, struct symvar* l, struct symvar* r) {
   struct symvar* res = malloc(sizeof(struct symvar));
   struct symexp* exp = malloc(sizeof(struct symexp));
   struct symconstrs* constrs = malloc(sizeof(struct symconstrs));
-  res->constrs = constrs;
   res->exp = exp;
   constrs->left = l->constrs;
   constrs->right = r->constrs;
   constrs->exp = NULL;
+  if(ccs == NULL) {
+    res->constrs = constrs;
+  } else {
+    res->constrs = sv_copyccs(ccs);
+    res->constrs->left = constrs;
+  }
   exp->left = l->exp;
   exp->right = r->exp;
   exp->op = op;
@@ -149,35 +163,9 @@ struct symvar* sv_ss(symexp_op op, struct symvar* l, struct symvar* r) {
   return res;
 }
 
-struct symvar* sv_sd(symexp_op op, struct symvar* l, double r) {
-  struct symvar* res = malloc(sizeof(struct symvar));
-  struct symexp* exp = malloc(sizeof(struct symexp));
-  struct symexp* expr = malloc(sizeof(struct symexp));
-  res->constrs = l->constrs;
-  res->exp = exp;
-  exp->left = l->exp;
-  exp->right = expr;
-  exp->op = op;
-  expr->op = DOUBLE;
-  expr->constd = r;
-  switch(op) {
-    case ADD:
-      res->nominal = l->nominal + r;
-      break;
-    case SUB:
-      res->nominal = l->nominal - r;
-      break;
-    case MUL:
-      res->nominal = l->nominal * r;
-      break;
-    case DIV:
-      res->nominal = l->nominal / r;
-      break;
-    case EXP:
-      res->nominal = pow(l->nominal, r);
-      break;
-  }
-  return res;
+struct symvar* sv_sd(struct symconstrs* ccs, symexp_op op, struct symvar* l, double rd) {
+  struct symvar* r = sv_init_d(NULL, rd);
+  return sv_ss(ccs, op, l, r);
 }
 
 void sv_print_exp(struct symexp* e) {

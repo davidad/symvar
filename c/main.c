@@ -2,12 +2,15 @@
 
 void main() {
   struct symvar *v, *w;
-  v=sv_init_d(2.0);
-  w=sv_init_d(1.0);
+  struct symconstrs* ccs = NULL;
+  v=sv_init_v(ccs,2.0,"Two");
+  w=sv_init_d(ccs,1.0);
   sv_print(v);
   sv_print(w);
-  v = sv_ss(ADD,v,w);
-  v = sv_sd(EXP,v,3.0);
+  v = sv_ss(ccs,ADD,v,w);
+  if(sv_pconstr(&ccs,v,GT,w)) {
+    v = sv_sd(ccs,EXP,v,3.0);
+  }
   sv_print(v);
   return;
 }
