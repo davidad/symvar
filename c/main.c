@@ -8,9 +8,11 @@ void main() {
   sv_print(v);
   sv_print(w);
   v = sv_ss(ccs,ADD,v,w);
-  if(sv_pconstr(&ccs,v,GT,w)) {
+  if(sv_constr(&ccs,v,GT,w)) {
     v = sv_sd(ccs,EXP,v,3.0);
   }
+  sv_constr_pop(&ccs);
+  v = sv_sd(ccs,SUB,v,2.0);
   sv_print(v);
   return;
 }

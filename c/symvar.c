@@ -40,7 +40,13 @@ struct symconstrs* sv_copyccs(struct symconstrs* ccs) {
   return copy;
 }
 
-int sv_pconstr(struct symconstrs** ccs, struct symvar* l, symconstr_op op, struct symvar* r) {
+void sv_constr_pop(struct symconstrs** ccs) {
+  struct symconstrs* old_ccs = *ccs;
+  *ccs = (*ccs)->right;
+  free(old_ccs);
+}
+
+int sv_constr(struct symconstrs** ccs, struct symvar* l, symconstr_op op, struct symvar* r) {
   int res;
   double lv=l->nominal, rv=r->nominal;
   switch(op) {
